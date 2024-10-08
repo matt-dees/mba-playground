@@ -1,3 +1,6 @@
 [submodule "tools/sspam/sspam"]
 	path = tools/sspam/sspam
 	url = https://github.com/quarkslab/sspam.git
+[submodule "tools/arybo/arybo"]
+	path = tools/arybo/arybo
+	url = https://github.com/quarkslab/arybo.git
