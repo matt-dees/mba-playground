@@ -1,0 +1,3 @@
+[submodule "tools/sspam/sspam"]
+	path = tools/sspam/sspam
+	url = https://github.com/quarkslab/sspam.git
