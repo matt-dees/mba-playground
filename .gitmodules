@@ -34,3 +34,6 @@
 [submodule "tools/gamba/GAMBA"]
 	path = tools/gamba/GAMBA
 	url = https://github.com/DenuvoSoftwareSolutions/GAMBA.git
+[submodule "tools/syntia/syntia"]
+	path = tools/syntia/syntia
+	url = https://github.com/RUB-SysSec/syntia.git
