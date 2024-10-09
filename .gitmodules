@@ -4,3 +4,33 @@
 [submodule "tools/arybo/arybo"]
 	path = tools/arybo/arybo
 	url = https://github.com/quarkslab/arybo.git
+[submodule "tools/loki/loki"]
+	path = tools/loki/loki
+	url = https://github.com/RUB-SysSec/loki.git
+[submodule "tools/qsynth/qsynthesis"]
+	path = tools/qsynth/qsynthesis
+	url = https://github.com/quarkslab/qsynthesis.git
+[submodule "tools/neureduce/NeuReduce"]
+	path = tools/neureduce/NeuReduce
+	url = https://github.com/fvrmatteo/NeuReduce.git
+[submodule "tools/mba-blast/MBA-Blast"]
+	path = tools/mba-blast/MBA-Blast
+	url = https://github.com/softsec-unh/MBA-Blast.git
+[submodule "tools/mba-solver/MBA-Solver"]
+	path = tools/mba-solver/MBA-Solver
+	url = https://github.com/softsec-unh/MBA-Solver.git
+[submodule "tools/xyntia/xyntia"]
+	path = tools/xyntia/xyntia
+	url = https://github.com/binsec/xyntia.git
+[submodule "tools/mba-obfuscator/MBA-Obfuscator"]
+	path = tools/mba-obfuscator/MBA-Obfuscator
+	url = https://github.com/nhpcc502/MBA-Obfuscator.git
+[submodule "tools/simba/SiMBA"]
+	path = tools/simba/SiMBA
+	url = https://github.com/DenuvoSoftwareSolutions/SiMBA.git
+[submodule "tools/promba/ProMBA"]
+	path = tools/promba/ProMBA
+	url = https://github.com/astean1001/ProMBA.git
+[submodule "tools/gamba/GAMBA"]
+	path = tools/gamba/GAMBA
+	url = https://github.com/DenuvoSoftwareSolutions/GAMBA.git
