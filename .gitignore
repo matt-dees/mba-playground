@@ -1,2 +1,4 @@
+tools/eqsat/oracle_constant.pickle
+tools/eqsat/oracle_symbolic.pickle
 *.out
 .vscode

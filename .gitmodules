@@ -37,3 +37,6 @@
 [submodule "tools/syntia/syntia"]
 	path = tools/syntia/syntia
 	url = https://github.com/RUB-SysSec/syntia.git
+[submodule "oracle-synthesis-meets-equality-saturation"]
+	path = oracle-synthesis-meets-equality-saturation
+	url = https://github.com/fvrmatteo/oracle-synthesis-meets-equality-saturation.git
