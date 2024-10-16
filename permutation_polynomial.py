@@ -1,29 +1,84 @@
 import numpy as np
 import sympy as sp
-from sympy.polys.matrices import DomainMatrix
-from sympy.polys.domains import GF
 
 
-def generate_factorial_basis(N, d):
+def falling_factorial_basis(degree, mod_exp=64):
     """
-    Generate a falling factorial basis for the permutation polynomials mod 2^N.
+    Generate a falling factorial basis of degree `d` for the permutation polynomials mod 2^N.
+
+    This implementation directly relies on the underlying storage of the polynomial coefficients in NumPy
+    to compute mod 2^N.
     """
-    mtx = sp.matrices.Matrix(domain="GF(256)")
-    x = sp.Symbol('x')
-    for i in range(0, d + 1):
-        if i == 0:
-            poly = sp.Poly(1, x, domain='GF(256)').to_ring()
-        elif i == 1:
-            poly = sp.Poly(x + 0, x, domain='GF(256)').to_ring()
-        else:
-            poly = poly.mul(sp.Poly(x-(i-1), x, domain='GF(256)').to_ring())
-            print(poly)
-        mtx = mtx.row_join(sp.Matrix(10, 1, ([0] * (d - i)) + poly.all_coeffs()[::-1]))
-        dm = DomainMatrix.from_Matrix(mtx, domain='GF(256)')
+    match mod_exp:
+        case 8:
+            dtype = 'uint8'
+        case 16:
+            dtype = 'uint16'
+        case 32:
+            dtype = 'uint32'
+        case 64:
+            dtype = 'uint64'
+        case _:
+            raise ValueError("Only 2^8, 2^16, 2^32, and 2^64 are supported.")
+
+    mtx = np.zeros(shape=(degree+1, degree+1), dtype=dtype)
+    mtx[0][0] = 1 # x^(0) = 1
+    prev = [1]
+    for i in range(1, degree + 1):
+        # Multiply the previous polynomial by (x - i) to get the basis polynomial of degree i
+        newp = np.polymul(prev, [1, -(i+1)]) # x^(i) = (x - (i-1))*x^(i-1)
+
+        # Store polynomial as column vector with leading coefficient at the bottom
+        # so resultant matrix is triangular and is guaranteed to have inverse mod 2^N
+        # (since the diagonal is all 1s the determinant is 1 and hence nonzero)
+        mtx[0:i+1,i] = np.flip(newp)
+        prev = newp
         
-    return dm
+    return mtx
+
+def modular_inv_tri(M):
+    """
+    Compute the modular inverse of a triangular matrix where the diagonal is all 1s.
+    The value of each element in the inverse can be computed directly using backwards propagation.
+
+    Matrices of size 3x3 are members of the Heisenberg non-Abelian group.
+    
+    For example, 3x3 matrix:
+
+        1 a b         1 a' b'                                                           1 0 0
+    A = 0 1 c  A^-1 = 0 1  c'  when multiplied together should give the identity matrix 0 1 0
+        0 0 1         0 0  1                                                            0 0 1
+
+
+    The dot product 
+        
+        A[0,:]  * A^-1[:, 1] = 0
+        [1 a b] * [a' 1 0] = 0
+        1*a' + a = 0
+        a' = -a
+
+    Hence, each element will be equal to the additive inverse of the dot product of the remaining elements in the vector.
+
+    """
+    N = M.shape[0]
+    inv = np.eye(N, dtype=M.dtype)
+    row_base = 0
+    col_base = 1
+    for i in range(N-1, 0, -1):
+        for j in range(0, i):
+            row = row_base + j
+            col = col_base + j
+            vecM = M[row,:]
+            vecMinv = inv[:, col]
+            inv[row][col] = -(np.dot(vecM, vecMinv))
+        col_base += 1
+            
+    return inv
 
 if __name__ == "__main__":
-    a = generate_factorial_basis(8, 9)
+    np.seterr(over='ignore')
+    a = falling_factorial_basis(8, 9)
     print(a)
-    sp.pprint(sp.Matrix(a).inv_mod(2**8))
+    a_inv = modular_inv_tri(a)
+    print(a_inv)
+    print(np.matmul(a, a_inv))
