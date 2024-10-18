@@ -139,14 +139,37 @@ def generate_univariate_permutation_polynomial(degree, N=64):
     poly = np.array([0]*(degree+1), dtype=domain(N))
     poly[degree] = 0 # a0 always zero for polynomial in automorphism group
     poly[degree - 1] = random.randint(1, 2**N-1) | 1 # a1 must be odd
-    for i in range(2, degree, 2):
-        # a2, a4, a6, ... must be even
-        poly[degree - i] = random.randint(0, 2**N-1) & ~1 # a2, a4, a6, ... must be even
 
-    for i in range(3, degree, 2):
-        # a3, a5, a7, ... must be even
-        poly[degree - i] = random.randint(1, 2**N-1) & ~1
+    # TODO: Spice up the coefficients of a2 .. aN by using all possible
+    # even combinations
+
+    def _gen_coeffs_even_sum(num_coeffs):
+        """
+        Generate coefficients which sum to an even number.
+        """
+        coeffs = [random.randint(0, 2**N-1) for _ in range(num_coeffs)]
+        if sum(coeffs) % 2 == 1:
+            coeffs[-1] ^= 1 # flip bit of last coefficient to force sum to even
+        return coeffs
+
+    evens = _gen_coeffs_even_sum((degree) // 2)     # a2, a4, a6, ...
+    assert(sum(evens) % 2 == 0)
+    odds = _gen_coeffs_even_sum((degree - 1) // 2)  # a3, a5, a7, ...
+    assert(sum(odds) % 2 == 0)
+
+    for i in range(degree - 2, -1, -1):
+        poly[i] = odds.pop() if i % 2 else evens.pop()
+
+    assert(len(evens) == 0)
+    assert(len(odds) == 0)
+
     return poly
+
+def univariate_poly_inv(poly, N=64):
+    """
+    Compute the compositional inverse of a univariate polynomial in the ring 2^N.
+    """
+    pass
 
 def generate_multivariate_permutation_polynomial(max_degree, num_variables, N=64):
     """
@@ -155,6 +178,11 @@ def generate_multivariate_permutation_polynomial(max_degree, num_variables, N=64
     """
     pass
 
+def multivariate_poly_inv(poly, N=64):
+    """
+    Compute the compositional inverse of a multivariate polynomial in the ring 2^N.
+    """
+    pass
 
 if __name__ == "__main__":
     np.seterr(over='ignore')
