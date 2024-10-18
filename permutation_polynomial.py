@@ -140,9 +140,6 @@ def generate_univariate_permutation_polynomial(degree, N=64):
     poly[degree] = 0 # a0 always zero for polynomial in automorphism group
     poly[degree - 1] = random.randint(1, 2**N-1) | 1 # a1 must be odd
 
-    # TODO: Spice up the coefficients of a2 .. aN by using all possible
-    # even combinations
-
     def _gen_coeffs_even_sum(num_coeffs):
         """
         Generate coefficients which sum to an even number.
