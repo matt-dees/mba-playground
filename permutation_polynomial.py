@@ -108,7 +108,7 @@ def generate_zero_polynomial(max_degree, N=64):
     Generates a zero polynomial in the ring 2^N of degree <= max_degree by
     choosing random coefficients to multiply by the zero ideal basis of degree `max_degree`.
 
-    H(x) = Sum_{j=0}^{d} h_j x^(j) wheren x^(j) is the falling factorial at j.
+    H(x) = Sum_{j=0}^{d} h_j x^(j) where x^(j) is the jth falling factorial.
 
     h_j ~ 0 mod (2 ^ max(w-v_2(j!), 0)) by taking the jth discrete derivative of H(x) and evaluating at 0.
 
@@ -121,11 +121,32 @@ def generate_zero_polynomial(max_degree, N=64):
         poly = np.polyadd(poly, component_i)
     return poly
 
-def generate_univariate_permutation_polynomial(max_degree, N=64):
+def generate_univariate_permutation_polynomial(degree, N=64):
     """
-    Generates a univariate permutation polynomial in the ring 2^N of degree <= max_degree.
+    Let A = Z2n with n ≥ 2 and let 
+        
+        P (x) = a0 + a1x + · · · + adx^d 
+        
+        be a polynomial with integral coefficients.
+        
+        The polynomial P represents a function f of A which is a binary permutation polynomial
+        if and only if: 
+        - a1 is odd
+        - (a2 + a4 + a6 + . . . ) is even
+        - (a3 + a5 + a7 + . . . ) is even.
     """
-    pass
+    assert(degree >= 1)
+    poly = np.array([0]*(degree+1), dtype=domain(N))
+    poly[degree] = 0 # a0 always zero for polynomial in automorphism group
+    poly[degree - 1] = random.randint(1, 2**N-1) | 1 # a1 must be odd
+    for i in range(2, degree, 2):
+        # a2, a4, a6, ... must be even
+        poly[degree - i] = random.randint(0, 2**N-1) & ~1 # a2, a4, a6, ... must be even
+
+    for i in range(3, degree, 2):
+        # a3, a5, a7, ... must be even
+        poly[degree - i] = random.randint(1, 2**N-1) & ~1
+    return poly
 
 def generate_multivariate_permutation_polynomial(max_degree, num_variables, N=64):
     """
