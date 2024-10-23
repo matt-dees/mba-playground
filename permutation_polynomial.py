@@ -3,6 +3,163 @@ import sympy as sp
 import math
 import random
 
+class BinaryPolynomial:
+    
+    def __init__(self, coeffs, mod_exp=64):
+        """
+        Initialize a polynomial with coefficients `coeffs` in the ring 2^N.
+
+        Coefficients are stored with leading coefficient at the bottom of the array.
+        """
+        self.mod_exp = mod_exp
+
+        match self.mod_exp:
+            case 8:
+                self.dtype = 'uint8'
+            case 16:
+                self.dtype = 'uint16'
+            case 32:
+                self.dtype = 'uint32'
+            case 64:
+                self.dtype = 'uint64'
+            case _:
+                raise ValueError("Only 2^8, 2^16, 2^32, and 2^64 are supported.")
+            
+        self.coeffs = np.array(coeffs, dtype=self.dtype)
+    
+    def degree(self):
+        return len(self.coeffs) - 1
+    
+    def derivative(self):
+        return BinaryPolynomial(np.polyder(self.coeffs), mod_exp=self.mod_exp)
+    
+    def compose(self, other):
+        return BinaryPolynomial(np.polyval(np.poly1d(self.coeffs), np.poly1d(other.coeffs)), mod_exp=self.mod_exp)
+    
+    def truncate(self):
+        self.coeffs = np.trim_zeros(self.coeffs, 'b')
+
+    def is_identity(self):
+        return np.array_equal(np.array([1, 0], dtype=self.dtype), self)
+    
+    def simplify(self, zero_ideal):
+        """
+        Simplify a polynomial by subtracting off the zero ideal.
+        """
+        for z in zero_ideal:
+            if z.degree() <= self.degree():
+                self %= z
+        self.truncate()
+
+    def newton_inverse(self, zero_ideal):
+        """
+        Compute the Newton inverse of a polynomial in the ring 2^N.
+        """
+
+        # Initial guess is f(^-1)(x) = x
+        polyx = BinaryPolynomial([1, 0], mod_exp=self.mod_exp)
+
+        g_i = polyx
+        iter_count = 0
+
+        while True: 
+            assert(iter_count < self.degree())
+
+            composition = self.compose(g_i)
+            print(f"Composition: \n{composition}")
+            
+            if composition.is_identity():
+                break
+
+            composition -= polyx
+
+            dg = g_i.derivative()
+            print(f"Derivative: \n{dg}")
+
+            g_i -= dg * composition
+            
+            print(f"g_i (before simplification): \n{g_i}")
+            g_i.simplify(zero_ideal)
+            iter_count += 1
+
+            print(f"--Iteration {iter_count}--\n{g_i}")
+            
+        return g_i
+
+    def __add__(self, other):
+        return BinaryPolynomial(np.polyadd(self.coeffs, other.coeffs), mod_exp=self.mod_exp)
+    
+    def __sub__(self, other):
+        return BinaryPolynomial(np.polysub(self.coeffs, other.coeffs), mod_exp=self.mod_exp)
+    
+    def __mul__(self, other):
+        return BinaryPolynomial(np.polymul(self.coeffs, other.coeffs), mod_exp=self.mod_exp)
+    
+    def __mod__(self, other):
+        _, r = np.polydiv(self.coeffs, other.coeffs)
+        return BinaryPolynomial(r, mod_exp=self.mod_exp)
+    
+    def __call__(self, x):
+        return np.polyval(self.coeffs, x) % 2**self.mod_exp
+    
+    def __repr__(self):
+        return np.poly1d(self.coeffs).__repr__()
+    
+    def __str__(self):
+        return np.poly1d(self.coeffs).__str__()
+    
+    def __eq__(self, other):
+        return np.array_equal(self.coeffs, other.coeffs)
+    
+    def __ne__(self, other):
+        return not np.array_equal(self.coeffs, other.coeffs)
+    
+
+class ZeroIdeal:
+    def __init__(self, mod_exp=64):
+        """
+        Initialize a zero ideal in the ring 2^N.
+        """
+        self.mod_exp = mod_exp
+        self.degree = d_w(self.mod_exp)
+
+        fb = FactorialBasis(self.degree, mod_exp=self.mod_exp)
+        self.basis = [BinaryPolynomial([2 ** max(mod_exp-v_2(i), 0)], mod_exp=mod_exp) * fb[i] for i in range(2, self.degree, 2)]
+
+    def __getitem__(self, key):
+        return self.basis[key]
+    
+    def __len__(self):
+        return len(self.basis)
+    
+    def __iter__(self):
+        return iter(self.basis)
+    
+    def __repr__(self):
+        return f"ZeroIdeal(2 ^ {self.mod_exp})"
+    
+    def __str__(self):
+        return f"ZeroIdeal(2 ^ {self.mod_exp})"
+    
+    def print_basis(self):
+        for _, basis in enumerate(self.basis):
+            print(f"{basis}")
+
+
+class FactorialBasis:
+    def __init__(self, degree, mod_exp=64):
+        """
+        Initialize a falling factorial basis in the ring 2^N.
+        """
+        self.mod_exp = mod_exp
+        self.basis = [BinaryPolynomial([1], mod_exp=self.mod_exp)]
+        for i in range(0, degree):
+            self.basis.append(self.basis[-1] * BinaryPolynomial([1, (-i) % 2**mod_exp], mod_exp=self.mod_exp))
+
+    def __getitem__(self, key):
+        return self.basis[key]
+
+
 def d_w(w=64):
     """
     Find the smallest N such that the 2-adic valuation of N! is greater than or equal to w.
@@ -29,21 +186,7 @@ def G_j(j, N=64):
     ret = c_j * basis[:,j]
     return np.flip(ret)
 
-def domain(N=64):
-    """
-    Generates the domain of the ring 2^N.
-    """
-    match N:
-        case 8:
-            return 'uint8'
-        case 16:
-            return 'uint16'
-        case 32:
-            return 'uint32'
-        case 64:
-            return 'uint64'
-        case _:
-            raise ValueError("Only 2^8, 2^16, 2^32, and 2^64 are supported.")
+
 
 def falling_factorial_basis(degree, mod_exp=64):
     """
@@ -137,7 +280,7 @@ def generate_univariate_permutation_polynomial(degree, N=64):
     """
     assert(degree >= 1)
     poly = np.array([0]*(degree+1), dtype=domain(N))
-    poly[degree] = 0 # a0 always zero for polynomial in automorphism group
+    poly[degree] = 0 # a0 always zero for polynomial in automorphism group_delt 
     poly[degree - 1] = random.randint(1, 2**N-1) | 1 # a1 must be odd
 
     def _gen_coeffs_even_sum(num_coeffs):
@@ -162,6 +305,13 @@ def generate_univariate_permutation_polynomial(degree, N=64):
 
     return poly
 
+def derivative(poly):
+    """
+    Compute the derivative of a polynomial.
+    """
+    return np.polyder(poly)
+        
+
 def univariate_poly_inv(poly, N=64):
     """
     Compute the compositional inverse of a univariate polynomial in the ring 2^N.
@@ -183,8 +333,26 @@ def multivariate_poly_inv(poly, N=64):
 
 if __name__ == "__main__":
     np.seterr(over='ignore')
-    a = falling_factorial_basis(8, 9)
-    print(a)
-    a_inv = modular_inv_tri(a)
-    print(a_inv)
-    print(np.matmul(a, a_inv))
+    # x = sp.Symbol("x")
+    # f = sp.Poly(34*x**3 + 32*x**2 + x, x, domain=sp.GF(256, symmetric=False))
+    # f_inv = newton_inverse(f)
+    # iden = f_inv.compose(f)
+    # print(f"Identity: {iden}")
+    # print(iden(5))
+    # print(iden(100))
+    # t = sp.Poly(128*x**15 + 128*x**13 + 48*x**9 + x, x, modulus=256, symmetric=False)
+    # y = t.compose(f)
+    # print(y)
+    # print(y(5))
+
+    p = BinaryPolynomial([34, 32, 1, 0], mod_exp=8)
+    print("\n==Polynomial==\n")
+    print(p)
+
+    print("\n==Zero Ideal==\n")
+    zero_ideal = ZeroIdeal(mod_exp=8)
+    zero_ideal.print_basis()
+
+    print("\n==Newton Inverse==\n")
+    p_inv = p.newton_inverse(zero_ideal)
+    print(p_inv)
