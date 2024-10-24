@@ -9,7 +9,7 @@ class BinaryPolynomial:
         """
         Initialize a polynomial with coefficients `coeffs` in the ring 2^N.
 
-        Coefficients are stored with leading coefficient at the bottom of the array.
+        Coefficients are stored with leading coefficient at the top of the array.
         """
         self.mod_exp = mod_exp
 
@@ -37,19 +37,10 @@ class BinaryPolynomial:
         return BinaryPolynomial(np.polyval(np.poly1d(self.coeffs), np.poly1d(other.coeffs)), mod_exp=self.mod_exp)
     
     def truncate(self):
-        self.coeffs = np.trim_zeros(self.coeffs, 'b')
+        self.coeffs = np.trim_zeros(self.coeffs, 'f')
 
     def is_identity(self):
-        return np.array_equal(np.array([1, 0], dtype=self.dtype), self)
-    
-    def simplify(self, zero_ideal):
-        """
-        Simplify a polynomial by subtracting off the zero ideal.
-        """
-        for z in zero_ideal:
-            if z.degree() <= self.degree():
-                self %= z
-        self.truncate()
+        return np.array_equal(np.array([1, 0], dtype=self.dtype), self.coeffs)
 
     def newton_inverse(self, zero_ideal):
         """
@@ -63,26 +54,24 @@ class BinaryPolynomial:
         iter_count = 0
 
         while True: 
-            assert(iter_count < self.degree())
+            assert(iter_count < self.degree()*3)
 
             composition = self.compose(g_i)
-            print(f"Composition: \n{composition}")
+
+            composition = zero_ideal.simplify(composition)
             
             if composition.is_identity():
                 break
 
             composition -= polyx
 
+
             dg = g_i.derivative()
-            print(f"Derivative: \n{dg}")
 
             g_i -= dg * composition
             
-            print(f"g_i (before simplification): \n{g_i}")
-            g_i.simplify(zero_ideal)
+            g_i = zero_ideal.simplify(g_i)
             iter_count += 1
-
-            print(f"--Iteration {iter_count}--\n{g_i}")
             
         return g_i
 
@@ -95,9 +84,31 @@ class BinaryPolynomial:
     def __mul__(self, other):
         return BinaryPolynomial(np.polymul(self.coeffs, other.coeffs), mod_exp=self.mod_exp)
     
+    def __divmod__(self, other):
+        q, _ = np.polydiv(self.coeffs, other.coeffs)
+        q = BinaryPolynomial(q, mod_exp=self.mod_exp)
+        q.truncate()
+
+        r = self - (q * other)
+        r.truncate()
+        return q, r
+    
     def __mod__(self, other):
-        _, r = np.polydiv(self.coeffs, other.coeffs)
-        return BinaryPolynomial(r, mod_exp=self.mod_exp)
+        """
+        Reduce this polynomial by another polynomial.
+
+        Starting at the leading coefficient of this polynomial, divide by the leading coefficient of the other polynomial.
+        This entails subtracting each coefficient by the integer division of the leading coefficient of this polynomial 
+        by the leading coefficient of the other polynomial.
+
+        For example,
+
+        129x^2 - 129x % 128x^2 + 128x = x^2 - x
+        """
+        if self.degree() < other.degree():
+            return self
+        _, r = divmod(self, other)
+        return r
     
     def __call__(self, x):
         return np.polyval(self.coeffs, x) % 2**self.mod_exp
@@ -114,6 +125,8 @@ class BinaryPolynomial:
     def __ne__(self, other):
         return not np.array_equal(self.coeffs, other.coeffs)
     
+    def __iter__(self):
+        return iter(self.coeffs)
 
 class ZeroIdeal:
     def __init__(self, mod_exp=64):
@@ -144,6 +157,16 @@ class ZeroIdeal:
     def print_basis(self):
         for _, basis in enumerate(self.basis):
             print(f"{basis}")
+
+    def simplify(self, poly):
+        """
+        Simplify a polynomial by subtracting off the zero ideal.
+        """
+        for z in self[::-1]:
+            if z.degree() <= poly.degree():
+                poly %= z
+        return poly
+
 
 
 class FactorialBasis:
@@ -353,6 +376,10 @@ if __name__ == "__main__":
     zero_ideal = ZeroIdeal(mod_exp=8)
     zero_ideal.print_basis()
 
-    print("\n==Newton Inverse==\n")
+    print("\n==Inverse (Newton's Method)==\n")
     p_inv = p.newton_inverse(zero_ideal)
     print(p_inv)
+    
+    print("\n==Verification (Composition should be identity)==\n")
+    iden = p.compose(p_inv)
+    print(zero_ideal.simplify(iden))
