@@ -11,6 +11,10 @@ class BinaryPolynomial:
         Initialize a polynomial with coefficients `coeffs` in the ring 2^N.
 
         Coefficients are stored with leading coefficient at the top of the array.
+        
+        For example,
+        
+        1 + 2x + 3x^2 + 4x^3 % 2^64 -> BinaryPolynomial([4 3 2 1], 64)
         """
         self.mod_exp = mod_exp
         self.coeffs = np.array([int(x) % 2 ** mod_exp for x in coeffs], 
