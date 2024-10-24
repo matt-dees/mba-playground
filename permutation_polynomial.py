@@ -187,7 +187,7 @@ class BinaryPolynomial:
 
         For example,
 
-        129x^2 - 129x // 128x^2 + 128x = (1, x - 1)
+        129x^2 - 129x // 128x^2 + 128x = (1, x(x - 1))
         """
         q, _ = np.polydiv(self.coeffs, other.coeffs)
         q = BinaryPolynomial(q, mod_exp=self.mod_exp)
