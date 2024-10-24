@@ -316,7 +316,6 @@ class ZeroIdeal:
         return poly
 
 
-
 class FactorialBasis:
     def __init__(self, degree, mod_exp=64):
         """

@@ -54,6 +54,17 @@ class TestZeroIdealReduction(unittest.TestCase):
         zi = pp.ZeroIdeal(8)
         p = zi.simplify(pp.BinaryPolynomial([129, -129, 0], mod_exp=8))
         self.assertTrue(p == pp.BinaryPolynomial([1, -1, 0], mod_exp=8))
+        
+class TestNewtonInversion(unittest.TestCase):
+    
+    def test_inv_ring_256(self):
+        zi = pp.ZeroIdeal(8)
+        p = pp.BinaryPolynomial([34, 32, 1, 0], mod_exp=8)
+        inv = p.newton_inverse(zi)
+        self.assertTrue(zi.simplify(p.compose(inv)).is_identity())
+        
+        for i in range(2**8):
+            self.assertEqual(inv(p(i)), i)
 
 if __name__ == '__main__':
     unittest.main()
