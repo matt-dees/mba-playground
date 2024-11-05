@@ -10,7 +10,7 @@ class BinaryPolynomial:
         """
         Initialize a polynomial with coefficients `coeffs` in the ring 2^N.
 
-        Coefficients are stored with leading coefficient at the top of the array.
+        Coefficients are stored with leading coefficient at the beginning of the array.
         
         For example,
         

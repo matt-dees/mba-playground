@@ -13,13 +13,37 @@ if __name__ == "__main__":
     M = DM([[0, 0, 0], [-1, -1, 0], [-1, -1, 0], [-2, 0, -1]], domain=ZZ)
     pprint(M.nullspace())
     
-    two_var_signature_vecs = list(product([0, -1], repeat=4))
+    N = 2
+    inputs = list(product(range(2**N), repeat=2))
+
+    funcs = [
+        lambda args: args[0] * args[1],
+        lambda args: args[0] & args[1],
+        lambda args: args[0] | args[1],
+        lambda args: args[0] & ~args[1],
+        lambda args: ~args[0] & args[1]
+    ]
+
+    inp = lambda args: args[0] * args[1]
+
+    A_0 = [lambda args: args[0] & args[1], lambda args: args[0] & ~args[1]]
+    A_1 = [lambda args: args[0] | args[1], lambda args: ~args[0] & args[1]]
     
-    signature_vec_matrix = Matrix(two_var_signature_vecs, domain=ZZ)
-    signature_vec_matrix = signature_vec_matrix.rot90(-1)
-    pprint(signature_vec_matrix)
+
+    def f_to_vec(f):
+        return np.array(list(map(f, inputs)))
     
-    signature_vec_matrix = signature_vec_matrix.row_join(Matrix([42, 42, 42, 42], domain=ZZ))
-    pprint(signature_vec_matrix)
-    
-    print(signature_vec_matrix.nullspace())
+    B = f_to_vec(inp).transpose()
+
+    print(np.array(list(map(f_to_vec, A_0))))
+    print(np.array(list(map(f_to_vec, A_1))))
+    A_0 = np.array(list(map(f_to_vec, A_0))).transpose()
+    A_1 = np.array(list(map(f_to_vec, A_1))).transpose()
+
+    print(B)
+    np.pprint(A_0)
+    print(A_1)
+
+    print(A_0 * A_1)
+
+    print(np.linalg.lstsq(A_0 * A_1, B))
